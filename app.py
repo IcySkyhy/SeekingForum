@@ -8,14 +8,17 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta, timezone
 from functools import wraps
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
+load_dotenv()  # 加载 .env 文件
+
 # ── 初始化 ──────────────────────────────────────────────
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'qiusuo-forum-secret-key-change-in-production'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'qiusuo-forum-dev-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///forum.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -40,11 +43,11 @@ SILICONFLOW_API_KEY = os.environ.get('SILICONFLOW_API_KEY', '')
 SILICONFLOW_URL = 'https://api.siliconflow.cn/v1/chat/completions'
 SILICONFLOW_MODEL = 'Qwen/Qwen2.5-7B-Instruct'
 
-# ── 邮件配置 ────────────────────────────────────────────
-MAIL_SENDER = 'marmalade_service@outlook.com'
-MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
-MAIL_SMTP_SERVER = 'smtp-mail.outlook.com'
-MAIL_SMTP_PORT = 587
+# ── 邮件配置 (163 SMTP) ─────────────────────────────────
+MAIL_SENDER = os.environ.get('MAIL_SENDER', '')
+MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')  # 163 SMTP 授权码
+MAIL_SMTP_SERVER = 'smtp.163.com'
+MAIL_SMTP_PORT = 465  # 163 使用 SSL 端口
 ALLOWED_EMAIL_SUFFIX = '@mails.tsinghua.edu.cn'
 
 # 验证码内存缓存: {email: {'code': '123456', 'expires': datetime, 'type': 'register'|'login'}}
@@ -140,7 +143,7 @@ def generate_code():
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
 def send_verification_email(to_email, code, purpose='注册'):
-    """通过 Outlook SMTP 发送验证码邮件"""
+    """通过 163 SMTP (SSL) 发送验证码邮件"""
     subject = f'求索论坛 — {purpose}验证码'
     html = f"""
     <div style="max-width:420px;margin:40px auto;font-family:sans-serif;">
@@ -160,8 +163,7 @@ def send_verification_email(to_email, code, purpose='注册'):
     msg['Subject'] = subject
     msg.attach(MIMEText(html, 'html', 'utf-8'))
     try:
-        with smtplib.SMTP(MAIL_SMTP_SERVER, MAIL_SMTP_PORT) as server:
-            server.starttls()
+        with smtplib.SMTP_SSL(MAIL_SMTP_SERVER, MAIL_SMTP_PORT) as server:
             server.login(MAIL_SENDER, MAIL_PASSWORD)
             server.sendmail(MAIL_SENDER, to_email, msg.as_string())
         return True
