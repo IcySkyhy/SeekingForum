@@ -1,0 +1,70 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}用户管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>用户管理</h1>
+    <p class="subtitle">共 {{ users|length }} 位用户</p>
+</div>
+
+<div class="admin-table-wrapper">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>用户名</th>
+                <th>邮箱</th>
+                <th>角色</th>
+                <th>状态</th>
+                <th>注册时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr class="{% if user.is_banned %}row-banned{% endif %}">
+                <td>{{ user.id }}</td>
+                <td>
+                    <strong>{{ user.username }}</strong>
+                    {% if user.is_admin %}<span class="badge-tms">TMS</span>{% endif %}
+                </td>
+                <td>{{ user.email }}</td>
+                <td>
+                    {% if user.is_admin %}
+                        <span class="status-tag status-admin">管理员</span>
+                    {% else %}
+                        <span class="status-tag status-normal">普通用户</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.is_banned %}
+                        <span class="status-tag status-rejected">已封禁</span>
+                    {% else %}
+                        <span class="status-tag status-approved">正常</span>
+                    {% endif %}
+                </td>
+                <td>{{ user.created_at|bjtime }}</td>
+                <td class="action-cell">
+                    {% if not user.is_admin %}
+                        {% if user.is_banned %}
+                        <form method="POST" action="{{ url_for('admin_unban_user', uid=user.id) }}">
+                            <button class="btn btn-success btn-xs">解封</button>
+                        </form>
+                        {% else %}
+                        <form method="POST" action="{{ url_for('admin_ban_user', uid=user.id) }}">
+                            <button class="btn btn-warning btn-xs">封禁</button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('admin_delete_user', uid=user.id) }}" onsubmit="return confirm('确定删除用户 {{ user.username }} ？其所有帖子和评论都将被删除！')">
+                            <button class="btn btn-danger btn-xs">删除</button>
+                        </form>
+                    {% else %}
+                        <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

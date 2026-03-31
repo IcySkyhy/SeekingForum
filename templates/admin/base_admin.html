@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}管理后台{% endblock %} · 求索论坛</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- 管理导航 -->
+    <nav class="navbar navbar-admin">
+        <div class="container-admin nav-inner">
+            <a href="{{ url_for('index') }}" class="logo">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke-width="1.5">
+                    <defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#6c5ce7"/><stop offset="100%" style="stop-color:#0ea5e9"/>
+                    </linearGradient></defs>
+                    <rect x="3" y="3" width="22" height="22" rx="6" stroke="url(#lg)"/>
+                    <line x1="8" y1="10" x2="20" y2="10" stroke="url(#lg)"/>
+                    <line x1="8" y1="14" x2="17" y2="14" stroke="url(#lg)"/>
+                    <line x1="8" y1="18" x2="14" y2="18" stroke="url(#lg)"/>
+                </svg>
+                <span>求索论坛</span>
+            </a>
+            <div class="admin-nav-links">
+                <a href="{{ url_for('admin_dashboard') }}" class="admin-link {% if request.endpoint=='admin_dashboard' %}active{% endif %}">概览</a>
+                <a href="{{ url_for('admin_users') }}" class="admin-link {% if request.endpoint=='admin_users' %}active{% endif %}">用户</a>
+                <a href="{{ url_for('admin_posts') }}" class="admin-link {% if request.endpoint=='admin_posts' %}active{% endif %}">帖子</a>
+                <a href="{{ url_for('admin_comments') }}" class="admin-link {% if request.endpoint=='admin_comments' %}active{% endif %}">评论</a>
+            </div>
+            <div class="nav-actions">
+                <a href="{{ url_for('index') }}" class="btn btn-ghost btn-sm">← 回到前台</a>
+                <span class="username">{{ current_user.username }} <span class="badge-tms">TMS</span></span>
+            </div>
+        </div>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container-admin">
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">
+                        <span>{{ message }}</span>
+                        <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <main class="container-admin main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container-admin">
+            <p>求索论坛管理后台 · 自动化系TMS协会</p>
+        </div>
+    </footer>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}首页{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="hero-title">求索论坛</h1>
+    <p class="subtitle">马克思主义理论学习与交流平台 &middot; 自动化系TMS协会</p>
+</div>
+
+{% if posts %}
+<div class="post-list">
+    {% for post in posts %}
+    <a href="{{ url_for('view_post', post_id=post.id) }}" class="post-card">
+        <div class="post-card-header">
+            <div class="post-meta">
+                <div class="post-meta-name">
+                    <strong>{{ post.author.username }}</strong>
+                    {% if post.author.is_admin %}<span class="badge-tms">TMS</span>{% endif %}
+                </div>
+                <time>{{ post.created_at|bjtime }}</time>
+            </div>
+        </div>
+        <div class="post-card-title">{{ post.title }}</div>
+        <div class="post-card-excerpt">{{ post.content[:120] }}{% if post.content|length > 120 %}...{% endif %}</div>
+        <div class="post-card-footer">
+            <div class="comment-count">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14 10c0 .55-.45 1-1 1H5l-3 3V3c0-.55.45-1 1-1h10c.55 0 1 .45 1 1v7z"/>
+                </svg>
+                {{ post.comments|selectattr('status', 'equalto', 'approved')|list|length }} 条回复
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="6" y="6" width="36" height="36" rx="4"/>
+        <line x1="14" y1="18" x2="34" y2="18"/>
+        <line x1="14" y1="24" x2="28" y2="24"/>
+        <line x1="14" y1="30" x2="22" y2="30"/>
+    </svg>
+    <h3>还没有帖子</h3>
+    <p>成为第一个分享观点的人吧</p>
+    {% if current_user.is_authenticated %}
+        <a href="{{ url_for('new_post') }}" class="btn btn-primary">发布第一篇帖子</a>
+    {% else %}
+        <a href="{{ url_for('register') }}" class="btn btn-primary">注册后发帖</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

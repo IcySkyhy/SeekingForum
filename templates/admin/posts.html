@@ -1,0 +1,77 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}帖子管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>帖子管理</h1>
+    <p class="subtitle">审核和管理所有帖子</p>
+</div>
+
+<!-- 筛选 -->
+<div class="filter-bar">
+    <a href="{{ url_for('admin_posts', status='all') }}" class="filter-btn {% if current_filter=='all' %}active{% endif %}">全部</a>
+    <a href="{{ url_for('admin_posts', status='approved') }}" class="filter-btn {% if current_filter=='approved' %}active{% endif %}">已通过</a>
+    <a href="{{ url_for('admin_posts', status='pending') }}" class="filter-btn {% if current_filter=='pending' %}active{% endif %}">待审核</a>
+    <a href="{{ url_for('admin_posts', status='rejected') }}" class="filter-btn {% if current_filter=='rejected' %}active{% endif %}">已拒绝</a>
+</div>
+
+{% if posts %}
+<div class="admin-table-wrapper">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>标题</th>
+                <th>作者</th>
+                <th>状态</th>
+                <th>时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for post in posts %}
+            <tr>
+                <td>{{ post.id }}</td>
+                <td>
+                    <a href="{{ url_for('view_post', post_id=post.id) }}" class="table-link">{{ post.title[:40] }}{% if post.title|length > 40 %}…{% endif %}</a>
+                    {% if post.reject_reason %}
+                    <br><small class="text-danger">原因：{{ post.reject_reason }}</small>
+                    {% endif %}
+                </td>
+                <td>
+                    {{ post.author.username }}
+                    {% if post.author.is_admin %}<span class="badge-tms">TMS</span>{% endif %}
+                </td>
+                <td>
+                    <span class="status-tag status-{{ post.status }}">
+                        {% if post.status == 'approved' %}已通过{% elif post.status == 'pending' %}待审核{% elif post.status == 'rejected' %}已拒绝{% endif %}
+                    </span>
+                </td>
+                <td>{{ post.created_at|bjtime('%m-%d %H:%M') }}</td>
+                <td class="action-cell">
+                    {% if post.status != 'approved' %}
+                    <form method="POST" action="{{ url_for('admin_approve_post', pid=post.id) }}">
+                        <button class="btn btn-success btn-xs">通过</button>
+                    </form>
+                    {% endif %}
+                    {% if post.status != 'rejected' %}
+                    <form method="POST" action="{{ url_for('admin_reject_post', pid=post.id) }}">
+                        <input type="hidden" name="reason" value="管理员审核未通过">
+                        <button class="btn btn-warning btn-xs">拒绝</button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('admin_delete_post', pid=post.id) }}" onsubmit="return confirm('确定删除？')">
+                        <button class="btn btn-danger btn-xs">删除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <p>没有符合条件的帖子</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('index') }}" class="back-link">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M10 12L6 8l4-4"/>
+    </svg>
+    返回首页
+</a>
+
+{% if post.status == 'pending' %}
+<div class="status-banner status-pending">
+    ⏳ 此帖子正在等待审核
+</div>
+{% elif post.status == 'rejected' %}
+<div class="status-banner status-rejected">
+    ❌ 此帖子未通过审核{% if post.reject_reason %} — 原因：{{ post.reject_reason }}{% endif %}
+</div>
+{% endif %}
+
+<article class="post-article">
+    <div class="post-article-header">
+        <h1>{{ post.title }}</h1>
+        <div class="post-article-meta">
+            <strong>{{ post.author.username }}</strong>
+            {% if post.author.is_admin %}<span class="badge-tms">TMS</span>{% endif %}
+            <span class="separator">&middot;</span>
+            <time>{{ post.created_at|bjtime }}</time>
+        </div>
+    </div>
+    <div class="post-article-body">
+        {{ post.content|replace('\n', '<br>')|safe }}
+    </div>
+
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    <div class="admin-inline-actions">
+        {% if post.status != 'approved' %}
+        <form method="POST" action="{{ url_for('admin_approve_post', post_id=post.id) }}" style="display:inline">
+            <input type="hidden" name="referrer" value="{{ request.url }}">
+            <button class="btn btn-success btn-xs">✓ 通过</button>
+        </form>
+        {% endif %}
+        {% if post.status != 'rejected' %}
+        <form method="POST" action="{{ url_for('admin_reject_post', post_id=post.id) }}" style="display:inline">
+            <input type="hidden" name="referrer" value="{{ request.url }}">
+            <input type="hidden" name="reason" value="管理员手动拒绝">
+            <button class="btn btn-warning btn-xs">✗ 拒绝</button>
+        </form>
+        {% endif %}
+        <form method="POST" action="{{ url_for('admin_delete_post', post_id=post.id) }}" style="display:inline"
+              onsubmit="return confirm('确定要删除这篇帖子吗？')">
+            <input type="hidden" name="referrer" value="{{ url_for('index') }}">
+            <button class="btn btn-danger btn-xs">🗑 删除</button>
+        </form>
+    </div>
+    {% endif %}
+</article>
+
+<div class="comments-section">
+    <h2 class="comments-title">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M17 12.5c0 .69-.56 1.25-1.25 1.25H6.25L3 17V4.25C3 3.56 3.56 3 4.25 3h11.5c.69 0 1.25.56 1.25 1.25v8.25z"/>
+        </svg>
+        {{ comments|length }} 条回复
+    </h2>
+
+    {% if current_user.is_authenticated %}
+        {% if not current_user.is_banned %}
+        <form class="comment-form" method="POST" action="{{ url_for('add_comment', post_id=post.id) }}">
+            <div class="comment-input-wrapper">
+                <textarea name="content" placeholder="写下你的回复..." required></textarea>
+            </div>
+            <div class="comment-form-actions">
+                <button type="submit" class="btn btn-primary btn-sm">回复</button>
+            </div>
+        </form>
+        {% else %}
+        <div class="login-prompt">你的账号已被封禁，无法回复</div>
+        {% endif %}
+    {% else %}
+        <div class="login-prompt">
+            <a href="{{ url_for('login') }}">登录</a> 后参与讨论
+        </div>
+    {% endif %}
+
+    {% if comments %}
+    <div class="comment-list">
+        {% for comment in comments %}
+        <div class="comment-item">
+            <div class="comment-header">
+                <strong>{{ comment.author.username }}</strong>
+                {% if comment.author.is_admin %}<span class="badge-tms">TMS</span>{% endif %}
+                <time>{{ comment.created_at|bjtime }}</time>
+                {% if current_user.is_authenticated and current_user.is_admin %}
+                <form class="inline-delete" method="POST"
+                      action="{{ url_for('admin_delete_comment', comment_id=comment.id) }}"
+                      onsubmit="return confirm('确定删除此评论？')">
+                    <input type="hidden" name="referrer" value="{{ request.url }}">
+                    <button class="btn-icon-delete" title="删除评论">✕</button>
+                </form>
+                {% endif %}
+            </div>
+            <div class="comment-body">{{ comment.content }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-comments">暂无回复，来发表第一条吧</div>
+    {% endif %}
+</div>
+{% endblock %}

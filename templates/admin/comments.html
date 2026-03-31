@@ -1,0 +1,83 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}评论管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>评论管理</h1>
+    <p class="subtitle">审核和管理所有评论</p>
+</div>
+
+<!-- 筛选 -->
+<div class="filter-bar">
+    <a href="{{ url_for('admin_comments', status='all') }}" class="filter-btn {% if current_filter=='all' %}active{% endif %}">全部</a>
+    <a href="{{ url_for('admin_comments', status='approved') }}" class="filter-btn {% if current_filter=='approved' %}active{% endif %}">已通过</a>
+    <a href="{{ url_for('admin_comments', status='pending') }}" class="filter-btn {% if current_filter=='pending' %}active{% endif %}">待审核</a>
+    <a href="{{ url_for('admin_comments', status='rejected') }}" class="filter-btn {% if current_filter=='rejected' %}active{% endif %}">已拒绝</a>
+</div>
+
+{% if comments %}
+<div class="admin-table-wrapper">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>内容</th>
+                <th>作者</th>
+                <th>所属帖子</th>
+                <th>状态</th>
+                <th>时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for comment in comments %}
+            <tr>
+                <td>{{ comment.id }}</td>
+                <td>
+                    {{ comment.content[:60] }}{% if comment.content|length > 60 %}…{% endif %}
+                    {% if comment.reject_reason %}
+                    <br><small class="text-danger">原因：{{ comment.reject_reason }}</small>
+                    {% endif %}
+                </td>
+                <td>
+                    {{ comment.author.username }}
+                    {% if comment.author.is_admin %}<span class="badge-tms">TMS</span>{% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('view_post', post_id=comment.post_id) }}" class="table-link">
+                        {{ comment.post.title[:20] }}{% if comment.post.title|length > 20 %}…{% endif %}
+                    </a>
+                </td>
+                <td>
+                    <span class="status-tag status-{{ comment.status }}">
+                        {% if comment.status == 'approved' %}已通过{% elif comment.status == 'pending' %}待审核{% elif comment.status == 'rejected' %}已拒绝{% endif %}
+                    </span>
+                </td>
+                <td>{{ comment.created_at|bjtime('%m-%d %H:%M') }}</td>
+                <td class="action-cell">
+                    {% if comment.status != 'approved' %}
+                    <form method="POST" action="{{ url_for('admin_approve_comment', cid=comment.id) }}">
+                        <button class="btn btn-success btn-xs">通过</button>
+                    </form>
+                    {% endif %}
+                    {% if comment.status != 'rejected' %}
+                    <form method="POST" action="{{ url_for('admin_reject_comment', cid=comment.id) }}">
+                        <input type="hidden" name="reason" value="管理员审核未通过">
+                        <button class="btn btn-warning btn-xs">拒绝</button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('admin_delete_comment', cid=comment.id) }}" onsubmit="return confirm('确定删除？')">
+                        <button class="btn btn-danger btn-xs">删除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <p>没有符合条件的评论</p>
+</div>
+{% endif %}
+{% endblock %}

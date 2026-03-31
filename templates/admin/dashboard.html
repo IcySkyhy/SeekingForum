@@ -1,0 +1,72 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}管理概览{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>管理概览</h1>
+    <p class="subtitle">求索论坛运营数据</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">👥</div>
+        <div class="stat-info">
+            <span class="stat-number">{{ stats.users }}</span>
+            <span class="stat-label">注册用户</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-purple">📝</div>
+        <div class="stat-info">
+            <span class="stat-number">{{ stats.posts }}</span>
+            <span class="stat-label">帖子总数</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-green">💬</div>
+        <div class="stat-info">
+            <span class="stat-number">{{ stats.comments }}</span>
+            <span class="stat-label">评论总数</span>
+        </div>
+    </div>
+</div>
+
+<div class="stats-grid stats-grid-2">
+    <div class="stat-card stat-card-warning">
+        <div class="stat-info">
+            <span class="stat-number">{{ stats.pending_posts }}</span>
+            <span class="stat-label">待审核帖子</span>
+        </div>
+        {% if stats.pending_posts > 0 %}
+        <a href="{{ url_for('admin_posts', status='pending') }}" class="btn btn-ghost btn-sm">查看</a>
+        {% endif %}
+    </div>
+    <div class="stat-card stat-card-warning">
+        <div class="stat-info">
+            <span class="stat-number">{{ stats.pending_comments }}</span>
+            <span class="stat-label">待审核评论</span>
+        </div>
+        {% if stats.pending_comments > 0 %}
+        <a href="{{ url_for('admin_comments', status='pending') }}" class="btn btn-ghost btn-sm">查看</a>
+        {% endif %}
+    </div>
+    <div class="stat-card stat-card-danger">
+        <div class="stat-info">
+            <span class="stat-number">{{ stats.rejected_posts }}</span>
+            <span class="stat-label">被拒帖子</span>
+        </div>
+        {% if stats.rejected_posts > 0 %}
+        <a href="{{ url_for('admin_posts', status='rejected') }}" class="btn btn-ghost btn-sm">查看</a>
+        {% endif %}
+    </div>
+    <div class="stat-card stat-card-danger">
+        <div class="stat-info">
+            <span class="stat-number">{{ stats.rejected_comments }}</span>
+            <span class="stat-label">被拒评论</span>
+        </div>
+        {% if stats.rejected_comments > 0 %}
+        <a href="{{ url_for('admin_comments', status='rejected') }}" class="btn btn-ghost btn-sm">查看</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

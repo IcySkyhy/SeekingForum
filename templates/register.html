@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}注册{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>注册</h1>
+            <p>加入求索论坛，开始讨论</p>
+        </div>
+        <form class="auth-form" method="POST" action="{{ url_for('register') }}">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="2-20个字符" required minlength="2" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label for="email">邮箱</label>
+                <input type="email" id="email" name="email" placeholder="your@email.com" required>
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="至少6个字符" required minlength="6">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">注册</button>
+        </form>
+        <div class="auth-footer">
+            已有账号？<a href="{{ url_for('login') }}">立即登录</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

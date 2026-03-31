@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}发布帖子{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>发布新帖</h1>
+</div>
+
+<div class="editor-container">
+    <form class="editor-form" method="POST" action="{{ url_for('new_post') }}">
+        <div class="form-group">
+            <label for="title">标题</label>
+            <input type="text" id="title" name="title" placeholder="帖子标题" required maxlength="200">
+        </div>
+        <div class="form-group">
+            <label for="content">内容</label>
+            <textarea id="content" name="content" placeholder="分享你的想法..." rows="8" required></textarea>
+        </div>
+        <div class="editor-actions">
+            <a href="{{ url_for('index') }}" class="btn btn-ghost">取消</a>
+            <button type="submit" class="btn btn-primary">发布</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
