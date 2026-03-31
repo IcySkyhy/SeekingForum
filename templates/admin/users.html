@@ -47,15 +47,15 @@
                 <td class="action-cell">
                     {% if not user.is_admin %}
                         {% if user.is_banned %}
-                        <form method="POST" action="{{ url_for('admin_unban_user', uid=user.id) }}">
+                        <form method="POST" action="{{ url_for('admin_unban_user', user_id=user.id) }}">
                             <button class="btn btn-success btn-xs">解封</button>
                         </form>
                         {% else %}
-                        <form method="POST" action="{{ url_for('admin_ban_user', uid=user.id) }}">
+                        <form method="POST" action="{{ url_for('admin_ban_user', user_id=user.id) }}">
                             <button class="btn btn-warning btn-xs">封禁</button>
                         </form>
                         {% endif %}
-                        <form method="POST" action="{{ url_for('admin_delete_user', uid=user.id) }}" onsubmit="return confirm('确定删除用户 {{ user.username }} ？其所有帖子和评论都将被删除！')">
+                        <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" onsubmit="return confirm('确定删除用户 {{ user.username }} ？其所有帖子和评论都将被删除！')">
                             <button class="btn btn-danger btn-xs">删除</button>
                         </form>
                     {% else %}

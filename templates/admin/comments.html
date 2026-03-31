@@ -56,17 +56,17 @@
                 <td>{{ comment.created_at|bjtime('%m-%d %H:%M') }}</td>
                 <td class="action-cell">
                     {% if comment.status != 'approved' %}
-                    <form method="POST" action="{{ url_for('admin_approve_comment', cid=comment.id) }}">
+                    <form method="POST" action="{{ url_for('admin_approve_comment', comment_id=comment.id) }}">
                         <button class="btn btn-success btn-xs">通过</button>
                     </form>
                     {% endif %}
                     {% if comment.status != 'rejected' %}
-                    <form method="POST" action="{{ url_for('admin_reject_comment', cid=comment.id) }}">
+                    <form method="POST" action="{{ url_for('admin_reject_comment', comment_id=comment.id) }}">
                         <input type="hidden" name="reason" value="管理员审核未通过">
                         <button class="btn btn-warning btn-xs">拒绝</button>
                     </form>
                     {% endif %}
-                    <form method="POST" action="{{ url_for('admin_delete_comment', cid=comment.id) }}" onsubmit="return confirm('确定删除？')">
+                    <form method="POST" action="{{ url_for('admin_delete_comment', comment_id=comment.id) }}" onsubmit="return confirm('确定删除？')">
                         <button class="btn btn-danger btn-xs">删除</button>
                     </form>
                 </td>

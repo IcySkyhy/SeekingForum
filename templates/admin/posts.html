@@ -50,17 +50,17 @@
                 <td>{{ post.created_at|bjtime('%m-%d %H:%M') }}</td>
                 <td class="action-cell">
                     {% if post.status != 'approved' %}
-                    <form method="POST" action="{{ url_for('admin_approve_post', pid=post.id) }}">
+                    <form method="POST" action="{{ url_for('admin_approve_post', post_id=post.id) }}">
                         <button class="btn btn-success btn-xs">通过</button>
                     </form>
                     {% endif %}
                     {% if post.status != 'rejected' %}
-                    <form method="POST" action="{{ url_for('admin_reject_post', pid=post.id) }}">
+                    <form method="POST" action="{{ url_for('admin_reject_post', post_id=post.id) }}">
                         <input type="hidden" name="reason" value="管理员审核未通过">
                         <button class="btn btn-warning btn-xs">拒绝</button>
                     </form>
                     {% endif %}
-                    <form method="POST" action="{{ url_for('admin_delete_post', pid=post.id) }}" onsubmit="return confirm('确定删除？')">
+                    <form method="POST" action="{{ url_for('admin_delete_post', post_id=post.id) }}" onsubmit="return confirm('确定删除？')">
                         <button class="btn btn-danger btn-xs">删除</button>
                     </form>
                 </td>
