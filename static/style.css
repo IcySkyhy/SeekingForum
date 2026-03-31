@@ -516,8 +516,8 @@ a { color: inherit; text-decoration: none; }
 .auth-panel.active { display: flex; }
 
 /* 验证码输入行 */
-.code-input-row { display: flex; gap: 10px; align-items: center; }
-.code-input-row input { flex: 1; }
+.code-input-row { display: flex; gap: 10px; align-items: stretch; }
+.code-input-row input { flex: 1; min-width: 0; }
 
 .btn-send-code {
     white-space: nowrap;
@@ -525,6 +525,8 @@ a { color: inherit; text-decoration: none; }
     font-size: 0.8125rem !important;
     min-width: 110px;
     text-align: center;
+    flex-shrink: 0;
+    cursor: pointer;
 }
 
 .btn-send-code:disabled {
@@ -534,9 +536,11 @@ a { color: inherit; text-decoration: none; }
 
 /* 表单提示文字 */
 .form-hint {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     color: var(--text-muted);
     margin-top: 2px;
+    text-align: right;
+    display: block;
 }
 
 .auth-footer { text-align: center; margin-top: 24px; font-size: 0.875rem; color: var(--text-muted); }

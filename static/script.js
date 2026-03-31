@@ -46,15 +46,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // ── 发送验证码 ───────────────────────────────────
-    document.querySelectorAll('.btn-send-code').forEach(btn => {
-        btn.addEventListener('click', () => handleSendCode(btn));
+    // ── 发送验证码（使用事件委托确保可靠绑定）─────
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-send-code');
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleSendCode(btn);
+        }
     });
 });
 
 function handleSendCode(btn) {
+    if (btn.disabled) return;
     const codeType = btn.dataset.type; // 'register' or 'login'
-    // 找到同一 form 或页面中的 email 输入框
     const form = btn.closest('form') || btn.closest('.auth-card');
     const emailInput = form.querySelector('input[type="email"]');
     const email = emailInput ? emailInput.value.trim().toLowerCase() : '';
@@ -75,9 +80,14 @@ function handleSendCode(btn) {
     fetch('/send-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, type: codeType }),
+        body: JSON.stringify({ email: email, type: codeType }),
     })
-    .then(r => r.json())
+    .then(r => {
+        if (!r.ok && r.status !== 400 && r.status !== 429) {
+            throw new Error('HTTP ' + r.status);
+        }
+        return r.json();
+    })
     .then(data => {
         if (data.ok) {
             showToast('验证码已发送至邮箱');
@@ -88,8 +98,9 @@ function handleSendCode(btn) {
             btn.textContent = '发送验证码';
         }
     })
-    .catch(() => {
-        showToast('网络错误，请重试');
+    .catch(err => {
+        console.error('send-code error:', err);
+        showToast('发送失败: ' + err.message);
         btn.disabled = false;
         btn.textContent = '发送验证码';
     });
