@@ -1,10 +1,14 @@
 import os
 import re
 import json
+import random
+import smtplib
 import urllib.request
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -35,6 +39,16 @@ def beijing_time(dt, fmt='%Y-%m-%d %H:%M'):
 SILICONFLOW_API_KEY = os.environ.get('SILICONFLOW_API_KEY', '')
 SILICONFLOW_URL = 'https://api.siliconflow.cn/v1/chat/completions'
 SILICONFLOW_MODEL = 'Qwen/Qwen2.5-7B-Instruct'
+
+# ── 邮件配置 ────────────────────────────────────────────
+MAIL_SENDER = 'marmalade_service@outlook.com'
+MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
+MAIL_SMTP_SERVER = 'smtp-mail.outlook.com'
+MAIL_SMTP_PORT = 587
+ALLOWED_EMAIL_SUFFIX = '@mails.tsinghua.edu.cn'
+
+# 验证码内存缓存: {email: {'code': '123456', 'expires': datetime, 'type': 'register'|'login'}}
+verification_codes = {}
 
 # ── Models ──────────────────────────────────────────────
 class User(UserMixin, db.Model):
@@ -121,30 +135,89 @@ def ai_moderate(text):
     except Exception:
         return True, ''  # Default to approved if API fails
 
+# ── 邮件验证码 ──────────────────────────────────────────
+def generate_code():
+    return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
+def send_verification_email(to_email, code, purpose='注册'):
+    """通过 Outlook SMTP 发送验证码邮件"""
+    subject = f'求索论坛 — {purpose}验证码'
+    html = f"""
+    <div style="max-width:420px;margin:40px auto;font-family:sans-serif;">
+        <h2 style="color:#c0392b;margin-bottom:4px;">求索论坛</h2>
+        <p style="color:#888;font-size:14px;">SEEKING · 邮箱验证</p>
+        <hr style="border:none;border-top:2px solid #e74c3c;margin:20px 0;">
+        <p>你正在进行<strong>{purpose}</strong>操作，验证码为：</p>
+        <div style="font-size:32px;font-weight:700;letter-spacing:8px;color:#c0392b;
+                    background:#fdecea;padding:16px 24px;border-radius:6px;text-align:center;margin:20px 0;">
+            {code}
+        </div>
+        <p style="color:#888;font-size:13px;">验证码 5 分钟内有效，请勿泄露给他人。</p>
+    </div>"""
+    msg = MIMEMultipart('alternative')
+    msg['From'] = MAIL_SENDER
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(html, 'html', 'utf-8'))
+    try:
+        with smtplib.SMTP(MAIL_SMTP_SERVER, MAIL_SMTP_PORT) as server:
+            server.starttls()
+            server.login(MAIL_SENDER, MAIL_PASSWORD)
+            server.sendmail(MAIL_SENDER, to_email, msg.as_string())
+        return True
+    except Exception as e:
+        print(f'[mail error] {e}')
+        return False
+
+def store_code(email, code, code_type):
+    verification_codes[email] = {
+        'code': code,
+        'expires': datetime.utcnow() + timedelta(minutes=5),
+        'type': code_type,
+    }
+
+def verify_code(email, code, code_type):
+    entry = verification_codes.get(email)
+    if not entry:
+        return False
+    if entry['type'] != code_type:
+        return False
+    if datetime.utcnow() > entry['expires']:
+        verification_codes.pop(email, None)
+        return False
+    if entry['code'] != code:
+        return False
+    verification_codes.pop(email, None)
+    return True
+
 # ── Routes: Auth ────────────────────────────────────────
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        email = request.form.get('email', '').strip()
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
-        if not username or not email or not password:
+        code = request.form.get('code', '').strip()
+        if not email or not password or not code:
             flash('请填写所有字段', 'error')
             return redirect(url_for('register'))
-        if len(username) < 2 or len(username) > 20:
-            flash('用户名长度应为2-20个字符', 'error')
+        if not email.endswith(ALLOWED_EMAIL_SUFFIX):
+            flash('仅支持 @mails.tsinghua.edu.cn 邮箱注册', 'error')
             return redirect(url_for('register'))
         if len(password) < 6:
             flash('密码至少6个字符', 'error')
             return redirect(url_for('register'))
-        if User.query.filter_by(username=username).first():
-            flash('用户名已被使用', 'error')
-            return redirect(url_for('register'))
         if User.query.filter_by(email=email).first():
-            flash('邮箱已被使用', 'error')
+            flash('该邮箱已注册', 'error')
             return redirect(url_for('register'))
+        if not verify_code(email, code, 'register'):
+            flash('验证码错误或已过期', 'error')
+            return redirect(url_for('register'))
+        username = email.split('@')[0]
+        # 确保用户名唯一（极端情况）
+        if User.query.filter_by(username=username).first():
+            username = username + str(random.randint(10, 99))
         user = User(username=username, email=email,
                      password_hash=generate_password_hash(password))
         db.session.add(user)
@@ -159,18 +232,44 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
-        user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password_hash, password):
-            if user.is_banned:
-                flash('该账号已被封禁', 'error')
+        code = request.form.get('code', '').strip()
+        login_mode = request.form.get('login_mode', 'password')  # password or code
+
+        if not email:
+            flash('请输入邮箱', 'error')
+            return redirect(url_for('login'))
+
+        user = User.query.filter_by(email=email).first()
+
+        if login_mode == 'code':
+            # 验证码登录
+            if not code:
+                flash('请输入验证码', 'error')
                 return redirect(url_for('login'))
-            login_user(user)
-            flash('登录成功', 'success')
-            return redirect(url_for('index'))
-        flash('用户名或密码错误', 'error')
-        return redirect(url_for('login'))
+            if not user:
+                flash('该邮箱未注册', 'error')
+                return redirect(url_for('login'))
+            if not verify_code(email, code, 'login'):
+                flash('验证码错误或已过期', 'error')
+                return redirect(url_for('login'))
+        else:
+            # 密码登录
+            if not password:
+                flash('请输入密码', 'error')
+                return redirect(url_for('login'))
+            if not user or not check_password_hash(user.password_hash, password):
+                flash('邮箱或密码错误', 'error')
+                return redirect(url_for('login'))
+
+        if user.is_banned:
+            flash('该账号已被封禁', 'error')
+            return redirect(url_for('login'))
+
+        login_user(user)
+        flash('登录成功', 'success')
+        return redirect(url_for('index'))
     return render_template('login.html')
 
 @app.route('/logout')
@@ -179,6 +278,38 @@ def logout():
     logout_user()
     flash('已退出登录', 'success')
     return redirect(url_for('index'))
+
+@app.route('/send-code', methods=['POST'])
+def send_code():
+    """AJAX 端点：发送邮箱验证码"""
+    data = request.get_json(silent=True) or {}
+    email = data.get('email', '').strip().lower()
+    code_type = data.get('type', 'register')  # register or login
+
+    if not email:
+        return jsonify({'ok': False, 'msg': '请输入邮箱'}), 400
+
+    if not email.endswith(ALLOWED_EMAIL_SUFFIX):
+        return jsonify({'ok': False, 'msg': '仅支持 @mails.tsinghua.edu.cn 邮箱'}), 400
+
+    # 防止频繁发送
+    existing = verification_codes.get(email)
+    if existing and (existing['expires'] - timedelta(minutes=4)) > datetime.utcnow():
+        return jsonify({'ok': False, 'msg': '验证码已发送，请稍后再试'}), 429
+
+    if code_type == 'register' and User.query.filter_by(email=email).first():
+        return jsonify({'ok': False, 'msg': '该邮箱已注册'}), 400
+
+    if code_type == 'login' and not User.query.filter_by(email=email).first():
+        return jsonify({'ok': False, 'msg': '该邮箱未注册'}), 400
+
+    code = generate_code()
+    purpose = '注册' if code_type == 'register' else '登录'
+    if send_verification_email(email, code, purpose):
+        store_code(email, code, code_type)
+        return jsonify({'ok': True, 'msg': '验证码已发送'})
+    else:
+        return jsonify({'ok': False, 'msg': '邮件发送失败，请稍后重试'}), 500
 
 # ── Routes: Forum ───────────────────────────────────────
 @app.route('/')
@@ -403,13 +534,13 @@ def init_db():
     if not User.query.filter_by(username='admin').first():
         admin = User(
             username='admin',
-            email='admin@tms.org',
+            email='admin@mails.tsinghua.edu.cn',
             password_hash=generate_password_hash('admin123'),
             is_admin=True
         )
         db.session.add(admin)
         db.session.commit()
-        print('  [init] Created default admin: admin / admin123')
+        print('  [init] Created default admin: admin@mails.tsinghua.edu.cn / admin123')
 
 if __name__ == '__main__':
     with app.app_context():

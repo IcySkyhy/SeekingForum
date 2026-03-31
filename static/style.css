@@ -485,6 +485,60 @@ a { color: inherit; text-decoration: none; }
 
 .auth-form { display: flex; flex-direction: column; gap: 20px; }
 
+/* Auth tabs (密码/验证码 切换) */
+.auth-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: var(--font);
+}
+
+.auth-tab:hover { color: var(--text); }
+.auth-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* Auth panels: 只显示 active 的 */
+.auth-panel { display: none; }
+.auth-panel.active { display: flex; }
+
+/* 验证码输入行 */
+.code-input-row { display: flex; gap: 10px; align-items: center; }
+.code-input-row input { flex: 1; }
+
+.btn-send-code {
+    white-space: nowrap;
+    padding: 10px 16px !important;
+    font-size: 0.8125rem !important;
+    min-width: 110px;
+    text-align: center;
+}
+
+.btn-send-code:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 表单提示文字 */
+.form-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
 .auth-footer { text-align: center; margin-top: 24px; font-size: 0.875rem; color: var(--text-muted); }
 .auth-footer a {
     color: var(--primary);

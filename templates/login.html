@@ -8,10 +8,18 @@
             <h1>登录</h1>
             <p>登录你的求索论坛账号</p>
         </div>
-        <form class="auth-form" method="POST" action="{{ url_for('login') }}">
+
+        <div class="auth-tabs">
+            <button class="auth-tab active" data-target="password-form">密码登录</button>
+            <button class="auth-tab" data-target="code-form">验证码登录</button>
+        </div>
+
+        <!-- 密码登录 -->
+        <form class="auth-form auth-panel active" id="password-form" method="POST" action="{{ url_for('login') }}">
+            <input type="hidden" name="login_mode" value="password">
             <div class="form-group">
-                <label for="username">用户名</label>
-                <input type="text" id="username" name="username" placeholder="输入用户名" required>
+                <label for="email-pw">邮箱</label>
+                <input type="email" id="email-pw" name="email" placeholder="yourname@mails.tsinghua.edu.cn" required>
             </div>
             <div class="form-group">
                 <label for="password">密码</label>
@@ -19,6 +27,24 @@
             </div>
             <button type="submit" class="btn btn-primary btn-full">登录</button>
         </form>
+
+        <!-- 验证码登录 -->
+        <form class="auth-form auth-panel" id="code-form" method="POST" action="{{ url_for('login') }}">
+            <input type="hidden" name="login_mode" value="code">
+            <div class="form-group">
+                <label for="email-code">邮箱</label>
+                <input type="email" id="email-code" name="email" placeholder="yourname@mails.tsinghua.edu.cn" required>
+            </div>
+            <div class="form-group">
+                <label for="login-code">验证码</label>
+                <div class="code-input-row">
+                    <input type="text" id="login-code" name="code" placeholder="6位验证码" required maxlength="6" autocomplete="off">
+                    <button type="button" class="btn btn-ghost btn-send-code" id="loginSendCodeBtn" data-type="login">发送验证码</button>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">登录</button>
+        </form>
+
         <div class="auth-footer">
             还没有账号？<a href="{{ url_for('register') }}">立即注册</a>
         </div>

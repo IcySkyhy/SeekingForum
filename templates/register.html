@@ -6,20 +6,24 @@
     <div class="auth-card">
         <div class="auth-header">
             <h1>注册</h1>
-            <p>加入求索论坛，开始讨论</p>
+            <p>使用清华邮箱加入求索论坛</p>
         </div>
-        <form class="auth-form" method="POST" action="{{ url_for('register') }}">
+        <form class="auth-form" method="POST" action="{{ url_for('register') }}" id="registerForm">
             <div class="form-group">
-                <label for="username">用户名</label>
-                <input type="text" id="username" name="username" placeholder="2-20个字符" required minlength="2" maxlength="20">
-            </div>
-            <div class="form-group">
-                <label for="email">邮箱</label>
-                <input type="email" id="email" name="email" placeholder="your@email.com" required>
+                <label for="email">清华邮箱</label>
+                <input type="email" id="email" name="email" placeholder="yourname@mails.tsinghua.edu.cn" required>
+                <span class="form-hint">注册后用户名将自动设为 @ 前的部分</span>
             </div>
             <div class="form-group">
                 <label for="password">密码</label>
                 <input type="password" id="password" name="password" placeholder="至少6个字符" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label for="code">邮箱验证码</label>
+                <div class="code-input-row">
+                    <input type="text" id="code" name="code" placeholder="6位验证码" required maxlength="6" autocomplete="off">
+                    <button type="button" class="btn btn-ghost btn-send-code" id="sendCodeBtn" data-type="register">发送验证码</button>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary btn-full">注册</button>
         </form>
