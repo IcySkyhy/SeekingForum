@@ -23,10 +23,14 @@
     <div class="post-article-header">
         <h1>{{ post.title }}</h1>
         <div class="post-article-meta">
-            <strong>{{ post.author.username }}</strong>
+            <a href="{{ url_for('user_profile', username=post.author.username) }}"><strong>{{ post.author.username }}</strong></a>
             {% if post.author.is_admin %}<span class="badge-tms">TMS</span>{% endif %}
             <span class="separator">&middot;</span>
             <time>{{ post.created_at|bjtime }}</time>
+            {% for tag in post.tags %}
+            <span class="separator">&middot;</span>
+            <a href="{{ url_for('tag_posts', tag_name=tag.name) }}" class="tag-badge">{{ tag.name }}</a>
+            {% endfor %}
         </div>
     </div>
     <div class="post-article-body">
@@ -89,7 +93,7 @@
         {% for comment in comments %}
         <div class="comment-item">
             <div class="comment-header">
-                <strong>{{ comment.author.username }}</strong>
+                <a href="{{ url_for('user_profile', username=comment.author.username) }}"><strong>{{ comment.author.username }}</strong></a>
                 {% if comment.author.is_admin %}<span class="badge-tms">TMS</span>{% endif %}
                 <time>{{ comment.created_at|bjtime }}</time>
                 {% if current_user.is_authenticated and current_user.is_admin %}

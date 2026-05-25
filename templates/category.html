@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ tag.name }}{% endblock %}
+
+{% block content %}
+<div class="category-page">
+    <div class="page-header">
+        <h1><span class="tag-badge tag-badge-lg">{{ tag.name }}</span></h1>
+        <p class="subtitle">共 {{ posts|length }} 篇帖子</p>
+    </div>
+
+    <div class="category-layout">
+        <div class="content-main">
+            {% if posts %}
+            <div class="post-list">
+                {% for post in posts %}
+                <a href="{{ url_for('view_post', post_id=post.id) }}" class="post-card">
+                    <div class="post-card-header">
+                        <div class="post-meta">
+                            <div class="post-meta-name">
+                                <strong>{{ post.author.username }}</strong>
+                                {% if post.author.is_admin %}<span class="badge-tms">TMS</span>{% endif %}
+                            </div>
+                            <time>{{ post.created_at|bjtime }}</time>
+                        </div>
+                    </div>
+                    <div class="post-card-title">{{ post.title }}</div>
+                    <div class="post-card-excerpt">{{ post.content[:120] }}{% if post.content|length > 120 %}...{% endif %}</div>
+                    <div class="post-card-footer">
+                        <div class="comment-count">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M14 10c0 .55-.45 1-1 1H5l-3 3V3c0-.55.45-1 1-1h10c.55 0 1 .45 1 1v7z"/>
+                            </svg>
+                            {{ post.comments|selectattr('status', 'equalto', 'approved')|list|length }} 条回复
+                        </div>
+                        {% for t in post.tags %}
+                        <span class="tag-badge">{{ t.name }}</span>
+                        {% endfor %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <h3>该分类暂无帖子</h3>
+                <p>成为第一个在此分类发帖的人吧</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <aside class="sidebar">
+            <div class="sidebar-card">
+                <h3 class="sidebar-title">所有分类</h3>
+                <div class="tag-cloud">
+                    {% for t in all_tags %}
+                    <a href="{{ url_for('tag_posts', tag_name=t) }}" class="tag-badge {% if t == tag.name %}tag-badge-active{% endif %}">{{ t }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+{% endblock %}

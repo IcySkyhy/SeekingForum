@@ -36,11 +36,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.auth-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const target = tab.dataset.target;
-            // 切换 tab 激活
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            // 切换面板
             document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+            const panel = document.getElementById(target);
+            if (panel) panel.classList.add('active');
+        });
+    });
+
+    // ── 个人页面 Tab 切换 ────────────────────────────
+    document.querySelectorAll('.profile-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.dataset.target;
+            document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.profile-panel').forEach(p => p.classList.remove('active'));
             const panel = document.getElementById(target);
             if (panel) panel.classList.add('active');
         });

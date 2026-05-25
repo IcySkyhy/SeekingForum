@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}分类浏览{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>分类浏览</h1>
+    <p class="subtitle">按主题分类浏览帖子</p>
+</div>
+
+<div class="tags-grid">
+    {% for tag in tags %}
+    <a href="{{ url_for('tag_posts', tag_name=tag.name) }}" class="tag-card">
+        <span class="tag-card-name">{{ tag.name }}</span>
+        <span class="tag-card-count">{{ tag.count }} 篇帖子</span>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}

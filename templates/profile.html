@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ profile_user.username }} 的主页{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="profile-header">
+        <div class="profile-avatar">{{ profile_user.username[0]|upper }}</div>
+        <div class="profile-info">
+            <h1>{{ profile_user.username }}{% if profile_user.is_admin %}<span class="badge-tms">TMS</span>{% endif %}</h1>
+            <p class="profile-meta">加入于 {{ profile_user.created_at|bjtime('%Y-%m-%d') }} · {{ posts|length }} 篇帖子 · {{ comments|length }} 条回复</p>
+        </div>
+    </div>
+
+    <div class="profile-tabs">
+        <button class="profile-tab active" data-target="tab-posts">帖子</button>
+        <button class="profile-tab" data-target="tab-comments">回复</button>
+    </div>
+
+    <div id="tab-posts" class="profile-panel active">
+        {% if posts %}
+        <div class="post-list">
+            {% for post in posts %}
+            <a href="{{ url_for('view_post', post_id=post.id) }}" class="post-card">
+                <div class="post-card-title">{{ post.title }}</div>
+                <div class="post-card-excerpt">{{ post.content[:100] }}{% if post.content|length > 100 %}...{% endif %}</div>
+                <div class="post-card-footer">
+                    <time>{{ post.created_at|bjtime }}</time>
+                    {% for tag in post.tags %}
+                    <span class="tag-badge">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><p>暂无帖子</p></div>
+        {% endif %}
+    </div>
+
+    <div id="tab-comments" class="profile-panel">
+        {% if comments %}
+        <div class="comment-list">
+            {% for comment in comments %}
+            <div class="comment-item">
+                <div class="comment-header">
+                    <a href="{{ url_for('view_post', post_id=comment.post_id) }}" class="table-link">{{ comment.post.title }}</a>
+                    <time>{{ comment.created_at|bjtime }}</time>
+                </div>
+                <div class="comment-body" style="padding-left:0">{{ comment.content[:200] }}{% if comment.content|length > 200 %}...{% endif %}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><p>暂无回复</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

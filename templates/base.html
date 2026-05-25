@@ -18,14 +18,16 @@
                 <div class="nav-actions">
                     {% if current_user.is_authenticated %}
                         <a href="{{ url_for('new_post') }}" class="nav-link">发帖</a>
+                        <a href="{{ url_for('all_tags') }}" class="nav-link">分类</a>
                         {% if current_user.is_admin %}
                             <a href="{{ url_for('admin_dashboard') }}" class="nav-link">管理</a>
                         {% endif %}
                         <div class="user-menu">
-                            <span class="username">{{ current_user.username }}{% if current_user.is_admin %}<span class="badge-tms">TMS</span>{% endif %}</span>
+                            <a href="{{ url_for('user_profile', username=current_user.username) }}" class="username">{{ current_user.username }}{% if current_user.is_admin %}<span class="badge-tms">TMS</span>{% endif %}</a>
                             <a href="{{ url_for('logout') }}" class="nav-link">退出</a>
                         </div>
                     {% else %}
+                        <a href="{{ url_for('all_tags') }}" class="nav-link">分类</a>
                         <a href="{{ url_for('login') }}" class="nav-link">登录</a>
                         <a href="{{ url_for('register') }}" class="nav-link nav-link-accent">注册</a>
                     {% endif %}
@@ -46,7 +48,7 @@
     </div>
 
     <main class="main-content">
-        <div class="container">
+        <div class="container-wide">
             {% block content %}{% endblock %}
         </div>
     </main>

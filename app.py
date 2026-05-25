@@ -13,8 +13,9 @@ from flask import Flask, render_template, request, redirect, url_for, flash, abo
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import func
 
-load_dotenv()  # 加载 .env 文件
+load_dotenv()
 
 # ── 初始化 ──────────────────────────────────────────────
 app = Flask(__name__)
@@ -83,6 +84,22 @@ class Comment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+
+post_tags = db.Table('post_tags',
+    db.Column('post_id', db.Integer, db.ForeignKey('post.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+)
+
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    posts = db.relationship('Post', secondary=post_tags, backref=db.backref('tags', lazy=True))
+
+PREDEFINED_TAGS = [
+    '经典文本', '时事评论', '理论探讨', '读书笔记',
+    '历史研究', '哲学思辨', '政治经济学', '社会调查',
+    '文艺批评', '活动通知', '学习资料', '自由讨论'
+]
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -317,7 +334,17 @@ def send_code():
 @app.route('/')
 def index():
     posts = Post.query.filter_by(status='approved').order_by(Post.created_at.desc()).all()
-    return render_template('index.html', posts=posts)
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_posts = Post.query.filter(Post.status == 'approved', Post.created_at >= today_start).count()
+    hot_posts = Post.query.filter_by(status='approved').all()
+    hot_posts = sorted(hot_posts, key=lambda p: len([c for c in p.comments if c.status == 'approved']), reverse=True)[:5]
+    active_tags = []
+    for name in PREDEFINED_TAGS:
+        tag = Tag.query.filter_by(name=name).first()
+        if tag and any(p.status == 'approved' for p in tag.posts):
+            active_tags.append(name)
+    return render_template('index.html', posts=posts, today_posts=today_posts,
+                           hot_posts=hot_posts, active_tags=active_tags, all_tags=PREDEFINED_TAGS)
 
 @app.route('/post/<int:post_id>')
 def view_post(post_id):
@@ -340,15 +367,22 @@ def new_post():
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
+        selected_tags = request.form.getlist('tags')
         if not title or not content:
             flash('标题和内容不能为空', 'error')
             return redirect(url_for('new_post'))
-        # AI moderation
         is_ok, reason = ai_moderate(title + '\n' + content)
         status = 'approved' if is_ok else 'pending'
         reject_reason = reason if not is_ok else ''
         post = Post(title=title, content=content, user_id=current_user.id,
                      status=status, reject_reason=reject_reason)
+        for tag_name in selected_tags:
+            if tag_name in PREDEFINED_TAGS:
+                tag = Tag.query.filter_by(name=tag_name).first()
+                if not tag:
+                    tag = Tag(name=tag_name)
+                    db.session.add(tag)
+                post.tags.append(tag)
         db.session.add(post)
         db.session.commit()
         if status == 'approved':
@@ -357,7 +391,7 @@ def new_post():
         else:
             flash('帖子已提交，AI审核认为需要人工复审，请等待管理员审核。', 'error')
             return redirect(url_for('index'))
-    return render_template('new_post.html')
+    return render_template('new_post.html', tags=PREDEFINED_TAGS)
 
 @app.route('/post/<int:post_id>/comment', methods=['POST'])
 @login_required
@@ -382,6 +416,30 @@ def add_comment(post_id):
     else:
         flash('回复已提交，AI审核认为需要人工复审，请等待管理员审核。', 'error')
     return redirect(url_for('view_post', post_id=post_id))
+
+# ── Routes: Profile ────────────────────────────────────
+@app.route('/user/<username>')
+def user_profile(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    posts = Post.query.filter_by(user_id=user.id, status='approved').order_by(Post.created_at.desc()).all()
+    comments = Comment.query.filter_by(user_id=user.id, status='approved').order_by(Comment.created_at.desc()).limit(20).all()
+    return render_template('profile.html', profile_user=user, posts=posts, comments=comments)
+
+# ── Routes: Tags / Category ────────────────────────────
+@app.route('/tag/<tag_name>')
+def tag_posts(tag_name):
+    tag = Tag.query.filter_by(name=tag_name).first_or_404()
+    posts = Post.query.filter(Post.tags.any(Tag.id == tag.id), Post.status == 'approved').order_by(Post.created_at.desc()).all()
+    return render_template('category.html', tag=tag, posts=posts, all_tags=PREDEFINED_TAGS)
+
+@app.route('/tags')
+def all_tags():
+    tags_with_count = []
+    for name in PREDEFINED_TAGS:
+        tag = Tag.query.filter_by(name=name).first()
+        count = len([p for p in tag.posts if p.status == 'approved']) if tag else 0
+        tags_with_count.append({'name': name, 'count': count})
+    return render_template('tags.html', tags=tags_with_count)
 
 # ── Routes: Admin ───────────────────────────────────────
 @app.route('/admin')
@@ -543,6 +601,10 @@ def init_db():
         db.session.add(admin)
         db.session.commit()
         print('  [init] Created default admin: admin@mails.tsinghua.edu.cn / admin123')
+    for tag_name in PREDEFINED_TAGS:
+        if not Tag.query.filter_by(name=tag_name).first():
+            db.session.add(Tag(name=tag_name))
+    db.session.commit()
 
 if __name__ == '__main__':
     with app.app_context():
